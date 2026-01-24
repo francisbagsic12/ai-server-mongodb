@@ -25,12 +25,20 @@ app.use(
 mongoose
   .connect(
     "mongodb+srv://projectmail2030010_db_user:<db_password>@ai-drive-db.u2usteh.mongodb.net/?appName=ai-drive-db",
-    {serverSelectionTimeoutMS: 5000,   // fail faster on bad config
-  socketTimeoutMS: 45000,
+    {
+      serverSelectionTimeoutMS: 5000,     // Fail faster if bad config
+      socketTimeoutMS: 45000,
+      family: 4,
     },
   )
   .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+  .catch((err) => {
+
+    console.error("❌ MongoDB connection FAILED:");
+    console.error("Error message:", err.message);
+    console.error("Full error:", err);
+    process.exit(1); // Don't start server if DB fails
+  });
 
 // ────────────────────────────────────────────────
 // Models (you can move these to a /models folder later)
