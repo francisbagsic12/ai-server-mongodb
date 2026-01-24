@@ -24,7 +24,8 @@ app.use(
 // ────────────────────────────────────────────────
 mongoose
   .connect(
-    "mongodb+srv://projectmail2030010_db_user:<db_password>@ai-drive-db.u2usteh.mongodb.net/?appName=ai-drive-db",
+    "mongodb+srv://projectmail2030010_db_user:WRk2Fjl11H5zlE14@ai-drive-db.u2usteh.mongodb.net/?appName=ai-drive-db",
+    
     {
       serverSelectionTimeoutMS: 5000,     // Fail faster if bad config
       socketTimeoutMS: 45000,
