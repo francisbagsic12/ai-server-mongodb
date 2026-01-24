@@ -26,7 +26,7 @@ mongoose
   .connect(
     "mongodb+srv://projectmail2030010_db_user:WRk2Fjl11H5zlE14@ai-drive-db.u2usteh.mongodb.net/?appName=ai-drive-db",
     {
-      // useNewUrlParser & useUnifiedTopology no longer needed in recent Mongoose
+   serverSelectionTimeoutMS: 5000 
     },
   )
   .then(() => console.log("Connected to MongoDB"))
