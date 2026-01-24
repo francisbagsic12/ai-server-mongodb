@@ -25,7 +25,8 @@ app.use(
 mongoose
   .connect(
     "mongodb+srv://projectmail2030010_db_user:<db_password>@ai-drive-db.u2usteh.mongodb.net/?appName=ai-drive-db",
-    {
+    {serverSelectionTimeoutMS: 5000,   // fail faster on bad config
+  socketTimeoutMS: 45000,
     },
   )
   .then(() => console.log("Connected to MongoDB"))
