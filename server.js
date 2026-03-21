@@ -18,7 +18,7 @@ const isValidObjectId = (id) => {
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://ai-drive-qne.netlify.app"],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   }),
@@ -561,6 +561,32 @@ app.post("/api/admin/login", async (req, res) => {
 
 app.get("/api/admin/dashboard", verifyToken, (req, res) => {
   res.json({ message: `Welcome, ${req.admin.username}` });
+});
+
+app.put("/api/admin/change-password", verifyToken, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    return res
+      .status(400)
+      .json({ error: "Current and new password are required" });
+  }
+
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    if (!admin)
+      return res.status(404).json({ error: "Admin account not found" });
+
+    if (admin.password !== currentPassword) {
+      return res.status(401).json({ error: "Current password is incorrect" });
+    }
+
+    admin.password = newPassword;
+    await admin.save();
+    res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    console.error("Change password error:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
 });
 
 // AI query (unchanged)
