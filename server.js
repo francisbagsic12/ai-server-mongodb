@@ -10,10 +10,15 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: "*" } });
 
+// Helper function to validate MongoDB ObjectId
+const isValidObjectId = (id) => {
+  return mongoose.Types.ObjectId.isValid(id);
+};
+
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:5173","https://ai-driven-qne.netlify.app"],
+    origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   }),
@@ -25,21 +30,12 @@ app.use(
 mongoose
   .connect(
     "mongodb+srv://projectmail2030010_db_user:WRk2Fjl11H5zlE14@ai-drive-db.u2usteh.mongodb.net/?appName=ai-drive-db",
-    
     {
-      serverSelectionTimeoutMS: 5000,     // Fail faster if bad config
-      socketTimeoutMS: 45000,
-      family: 4,
+      // useNewUrlParser & useUnifiedTopology no longer needed in recent Mongoose
     },
   )
   .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => {
-
-    console.error("❌ MongoDB connection FAILED:");
-    console.error("Error message:", err.message);
-    console.error("Full error:", err);
-    process.exit(1); // Don't start server if DB fails
-  });
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // ────────────────────────────────────────────────
 // Models (you can move these to a /models folder later)
@@ -317,6 +313,9 @@ app.post("/api/operations", async (req, res) => {
 });
 
 app.put("/api/operations/:id/status", async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: "Invalid operation ID format" });
+  }
   const { status } = req.body;
   if (!["Active", "Standby", "Completed", "Aborted"].includes(status)) {
     return res.status(400).json({ error: "Invalid status" });
@@ -331,7 +330,8 @@ app.put("/api/operations/:id/status", async (req, res) => {
     if (!op) return res.status(404).json({ error: "Operation not found" });
     res.json({ success: true, status });
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("Update operation status error:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
@@ -341,6 +341,20 @@ app.get("/api/operations", async (req, res) => {
     res.json(ops);
   } catch (err) {
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.delete("/api/operations/:id", async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: "Invalid operation ID format" });
+  }
+  try {
+    const result = await Operation.findByIdAndDelete(req.params.id);
+    if (!result) return res.status(404).json({ error: "Operation not found" });
+    res.json({ message: "Operation deleted" });
+  } catch (err) {
+    console.error("Delete operation error:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
@@ -452,6 +466,9 @@ app.get("/api/shelters", async (req, res) => {
 });
 
 app.put("/api/shelters/:id", async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: "Invalid shelter ID format" });
+  }
   try {
     const shelter = await Shelter.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -459,17 +476,22 @@ app.put("/api/shelters/:id", async (req, res) => {
     if (!shelter) return res.status(404).json({ error: "Shelter not found" });
     res.json({ message: "Shelter updated", shelter });
   } catch (err) {
-    res.status(500).json({ error: "Update failed" });
+    console.error("Update shelter error:", err);
+    res.status(500).json({ error: "Update failed", details: err.message });
   }
 });
 
 app.delete("/api/shelters/:id", async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: "Invalid shelter ID format" });
+  }
   try {
     const result = await Shelter.findByIdAndDelete(req.params.id);
     if (!result) return res.status(404).json({ error: "Shelter not found" });
     res.json({ message: "Shelter deleted" });
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("Delete shelter error:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
   }
 });
 
