@@ -89,9 +89,10 @@ const Operation = mongoose.model("Operation", operationSchema);
 const rescueTeamSchema = new mongoose.Schema({
   name: String,
   status: String,
-  location: String,
   contact_person: String,
   contact_number: String,
+  latitude: Number,
+  longitude: Number,
   createdAt: { type: Date, default: Date.now },
 });
 const RescueTeam = mongoose.model("RescueTeam", rescueTeamSchema);
@@ -112,6 +113,21 @@ const adminSchema = new mongoose.Schema({
   password: String, // ← in production: hash this with bcrypt!
 });
 const Admin = mongoose.model("Admin", adminSchema);
+
+const vehicleSchema = new mongoose.Schema({
+  name: String,
+  type: String, // e.g., "Ambulance", "Fire Truck", "Rescue Vehicle", "Supply Truck"
+  plateNumber: String,
+  status: String, // "Available", "Deployed", "Maintenance"
+  location: String,
+  lat: Number,
+  lng: Number,
+  driver: String,
+  contactNumber: String,
+  capacity: Number, // For supply/rescue capacity
+  createdAt: { type: Date, default: Date.now },
+});
+const Vehicle = mongoose.model("Vehicle", vehicleSchema);
 
 // ────────────────────────────────────────────────
 // In-memory user locations (for Socket.IO)
@@ -405,6 +421,47 @@ app.delete("/api/rescue-teams/:id", async (req, res) => {
     const result = await RescueTeam.findByIdAndDelete(req.params.id);
     if (!result) return res.status(404).json({ error: "Team not found" });
     res.json({ message: "Team deleted" });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Vehicles
+app.post("/api/vehicles", async (req, res) => {
+  try {
+    const vehicle = await Vehicle.create(req.body);
+    res.status(201).json(vehicle);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to add vehicle" });
+  }
+});
+
+app.get("/api/vehicles", async (req, res) => {
+  try {
+    const vehicles = await Vehicle.find().sort({ createdAt: -1 });
+    res.json(vehicles);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.put("/api/vehicles/:id", async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    if (!vehicle) return res.status(404).json({ error: "Vehicle not found" });
+    res.json({ message: "Vehicle updated", vehicle });
+  } catch (err) {
+    res.status(500).json({ error: "Update failed" });
+  }
+});
+
+app.delete("/api/vehicles/:id", async (req, res) => {
+  try {
+    const result = await Vehicle.findByIdAndDelete(req.params.id);
+    if (!result) return res.status(404).json({ error: "Vehicle not found" });
+    res.json({ message: "Vehicle deleted" });
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
