@@ -82,6 +82,8 @@ const operationSchema = new mongoose.Schema({
   lead: String,
   location: String,
   assignedTeam: String,
+  assignedVehicle: String,
+  reportId: String,
   createdAt: { type: Date, default: Date.now },
 });
 const Operation = mongoose.model("Operation", operationSchema);
@@ -307,7 +309,7 @@ app.get("/api/resources", async (req, res) => {
 
 // Operations
 app.post("/api/operations", async (req, res) => {
-  const { name, status, lead, location, assignedTeam } = req.body;
+  const { name, status, lead, location, assignedTeam, assignedVehicle, reportId } = req.body;
 
   try {
     const operation = await Operation.create({
@@ -316,6 +318,8 @@ app.post("/api/operations", async (req, res) => {
       lead,
       location,
       assignedTeam,
+      assignedVehicle,
+      reportId,
     });
 
     // Update team status
