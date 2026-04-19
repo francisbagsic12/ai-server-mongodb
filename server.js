@@ -747,7 +747,7 @@ app.post("/query", async (req, res) => {
 });
 // Add near the top: const axios = require('axios');  (you already have it)
 
-// Free reverse geocoding option using BigDataCloud (no key needed for client-side / low volume)
+// Free reverse geocoding option using OpenStreetMap Nominatim (better for PH addresses)
 app.get("/api/reverse-geocode", async (req, res) => {
   const { lat, lon } = req.query;
 
@@ -763,21 +763,28 @@ app.get("/api/reverse-geocode", async (req, res) => {
   }
 
   try {
-    // Option 1: BigDataCloud free reverse geocode to city (good for PH, returns locality/admin areas)
+    // Use OpenStreetMap Nominatim for better Philippine address accuracy
     const response = await axios.get(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latNum}&longitude=${lonNum}&localityLanguage=en`,
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latNum}&lon=${lonNum}&zoom=18&addressdetails=1`,
+      {
+        headers: {
+          'User-Agent': 'AI-Disaster-Management/1.0'
+        }
+      }
     );
 
     const data = response.data;
 
-    // Format similar to what your app seems to expect
+    // Extract Philippine address components more accurately
+    const address = data.address || {};
+
+    // For Philippines: barangay/subdivision -> municipality/city -> province/region
     const result = {
-      village: data.locality || data.city || "Unknown",
-      town: data.city || data.administrative || "Unknown",
-      state: data.principalSubdivision || data.countryName || "Unknown",
-      fullAddress: data.locality
-        ? `${data.locality}, ${data.city}, ${data.principalSubdivision}`
-        : "Address not found",
+      village: address.neighbourhood || address.suburb || address.quarter || address.hamlet || "Unknown Barangay",
+      town: address.city || address.town || address.municipality || address.city_district || "Unknown Municipality",
+      state: address.region || address.state || address.province || address.state_district || "Unknown Province",
+      display_name: data.display_name || "Address not found",
+      fullAddress: address,
       raw: data, // for debugging
     };
 
