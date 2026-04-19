@@ -64,6 +64,7 @@ const reportSchema = new mongoose.Schema({
   additionalInfo: String,
   lat: Number,
   lng: Number,
+  status: { type: String, default: "Active" },
   createdAt: { type: Date, default: Date.now },
 });
 const Report = mongoose.model("Report", reportSchema);
@@ -257,7 +258,7 @@ io.on("connection", (socket) => {
 
 app.get("/api/reports", async (req, res) => {
   try {
-    const reports = await Report.find()
+    const reports = await Report.find({ status: { $ne: "Completed" } })
       .populate("locationId", "village town state")
       .sort({ createdAt: -1 })
       .lean();
@@ -286,7 +287,52 @@ app.get("/api/reports", async (req, res) => {
   }
 });
 
-app.get("/d", (req, res) => res.send("d"));
+app.get("/api/reports/history", async (req, res) => {
+  try {
+    const reports = await Report.find()
+      .populate("locationId", "village town state")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // rename fields to match your frontend expectation
+    const formatted = reports.map((r) => ({
+      id: r._id,
+      author: r.reporterName,
+      category: r.urgency,
+      content: r.message,
+      householdCount: r.householdCount,
+      helpTypes: r.helpTypes || [],
+      additionalInfo: r.additionalInfo,
+      date: r.createdAt,
+      lat: r.lat,
+      lng: r.lng,
+      village: r.locationId?.village,
+      town: r.locationId?.town,
+      state: r.locationId?.state,
+      status: r.status,
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.put("/api/reports/:id/status", async (req, res) => {
+  const { status } = req.body;
+  try {
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true },
+    );
+    if (!report) return res.status(404).json({ error: "Report not found" });
+    res.json({ message: "Report status updated", report });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 // Resources
 app.post("/api/resources", async (req, res) => {
@@ -309,7 +355,15 @@ app.get("/api/resources", async (req, res) => {
 
 // Operations
 app.post("/api/operations", async (req, res) => {
-  const { name, status, lead, location, assignedTeam, assignedVehicle, reportId } = req.body;
+  const {
+    name,
+    status,
+    lead,
+    location,
+    assignedTeam,
+    assignedVehicle,
+    reportId,
+  } = req.body;
 
   try {
     const operation = await Operation.create({
